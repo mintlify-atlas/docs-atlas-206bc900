@@ -1,0 +1,100 @@
+---
+title: "Impostor Mode: Find Who Doesn't Know the Film in La Mubi"
+sidebarTitle: "Impostor"
+description: "In Impostor mode, one or more players secretly don't know the movie. Everyone tries to expose the impostor through clues, debate, and a vote."
+---
+
+Impostor mode is La Mubi's social-deduction game. Instead of competing in teams, all players sit together as individuals, and the game secretly assigns one or more of them the role of **Impostor** — they never see the movie. Everyone else views the full movie card and must give clues that prove their knowledge, while the Impostor has to listen carefully and bluff convincingly enough to survive the vote. The tension comes from trust: a confident clue might belong to a real fan or a skilled faker, and a hesitant one might expose an Impostor — or an extremely cautious non-Impostor. The goal for the majority is to identify and eliminate every Impostor through debate and voting before they are outnumbered.
+
+## How to Play
+
+<Steps>
+  <Step title="Lobby Setup">
+    Select **Impostor** from the main lobby. Add at least **3 individual players** (Impostor mode does not use teams). Give every player a unique name. Configure two options before starting:
+
+    - **Impostor Count** — defaults to 1. The maximum allowed is `floor((players.length - 1) / 2)`, which ensures non-impostors always outnumber impostors at the start of the game. The lobby auto-caps this value (with a minimum of 1) if players are removed after it was set.
+    - **Debate Timer** — choose **30**, **60**, or **90 seconds**; defaults to 60. Increase it if your group likes longer arguments; decrease it to keep rounds snappy.
+
+    The **Start** button only activates once all player names are filled in and the 3-player minimum is met.
+  </Step>
+
+  <Step title="Role Reveal">
+    The game enters the **revealing** phase. Each player must view their role screen privately — pass the device around the table one player at a time.
+
+    - **Impostors** see the message: *"You are the IMPOSTOR!"* followed by the reminder *"Fake it — you don't know the movie."* They receive no movie information whatsoever.
+    - **Non-impostors** see the full movie card: poster, title, release year, rating, synopsis, director, and genres.
+
+    Players must not react visibly when they see their role screen.
+  </Step>
+
+  <Step title="Word Round">
+    The game moves to the **word_wait** phase. Players take turns in order, each saying **one word** that relates to the movie. Non-impostors should choose words that are accurate but not so obvious they instantly give the answer away. Impostors must pick a plausible-sounding word with no knowledge of the film — generic enough to fit many movies, specific enough to avoid suspicion.
+
+    Everyone listens closely. A word that feels slightly off, too safe, or strangely unrelated is often the first crack in an Impostor's cover.
+  </Step>
+
+  <Step title="Debate">
+    Once every player has given their word, the game enters the **debate** phase and the configurable debate timer starts. Players now speak freely — challenging each other's word choices, defending their own, and building a case for who they think the Impostor is. The Impostor should participate actively, redirect suspicion, and avoid going quiet.
+
+    When the timer expires, the group must move to a vote.
+  </Step>
+
+  <Step title="Voting">
+    The game enters the **voting** phase. The host reviews the table's consensus and taps the name of the player the group wants to eliminate. Elimination is immediate — the selected player is removed from the round.
+
+    After elimination, the game checks the win condition. If it is not yet met, the surviving players continue with another word round, debate, and vote cycle until a winner is determined.
+  </Step>
+
+  <Step title="Result">
+    The **result** phase reveals the outcome. The screen shows which side won, the identity of all impostors, and the movie that was used for the round. From the result screen the group can return to the lobby to start a new round with the same or a different player list.
+  </Step>
+</Steps>
+
+## Win Conditions
+
+| Side | Win condition |
+|---|---|
+| **Non-impostors** | All impostors have been eliminated through voting. |
+| **Impostors** | After an elimination, the number of remaining impostors is greater than or equal to the number of remaining non-impostors. |
+
+The impostor win condition reflects the real danger point: once impostors match or outnumber the innocents, the vote can always be swung in the impostors' favour and the game is effectively over.
+
+## Impostor Count
+
+The lobby defaults to **1 impostor**. The maximum you can set is derived from the total number of players *N* using the formula:
+
+```
+max_impostors = floor((N - 1) / 2)
+```
+
+This guarantees that non-impostors always hold a majority at the start of the game. Some examples:
+
+| Players (N) | Max impostors |
+|---|---|
+| 3 | 1 |
+| 4 | 1 |
+| 5 | 2 |
+| 6 | 2 |
+| 7 | 3 |
+
+If you reduce the player count in the lobby after setting a higher impostor number, the value is automatically capped down to the new maximum (but never below 1) so the constraint is never violated.
+
+## Debate Timer
+
+The debate timer controls how long players have to argue their case in the **debate** phase before a vote must be called. Three options are available: **30**, **60**, or **90 seconds**; it defaults to **60 seconds**. There is no penalty for finishing discussion before the timer runs out — the host can call for a vote at any time — but the timer provides a natural forcing function that keeps rounds from dragging on indefinitely.
+
+## ImpostorState Phases
+
+Impostor mode moves through five distinct phases in order. Each phase maps to a specific screen and set of allowed actions.
+
+| Phase | Description |
+|---|---|
+| `revealing` | Players view their roles one at a time. The device is passed around privately before the round begins. |
+| `word_wait` | Players take turns giving a single-word clue. The game advances through each player in sequence. |
+| `debate` | Open discussion with a running countdown. Players argue, accuse, and defend until the timer expires or the host calls a vote. |
+| `voting` | The host taps a player name to eliminate them. The win condition is evaluated immediately after. |
+| `result` | The outcome is revealed — who won, who the impostors were, and what the movie was. |
+
+<Warning>
+  Impostor mode requires at least 3 players. The **Start** button remains disabled until every player has a non-empty name and the 3-player minimum is met. Adding a fourth or fifth player is recommended for a richer debate — with only 3 players the word round and vote are very short, and a single wrong elimination immediately ends the game.
+</Warning>

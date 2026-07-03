@@ -1,0 +1,90 @@
+{
+  "projectType": "saas",
+  "projectName": "La Mubi",
+  "projectDescription": "A local-multiplayer movie party game with two modes — Charades (act out films for your team) and Impostor (find the player who doesn't know the movie) — powered by the TMDB API.",
+  "theme": "willow",
+  "primaryColor": "#FF8000",
+  "lightColor": "#FFF7ED",
+  "darkColor": "#1A1410",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Getting Started",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Game Modes",
+            "pages": [
+              "game-modes/charades",
+              "game-modes/impostor"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/environment",
+              "configuration/timer-and-players",
+              "configuration/language-and-theme"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Reference",
+        "groups": [
+          {
+            "group": "API",
+            "pages": [
+              "api/movies-endpoint"
+            ]
+          },
+          {
+            "group": "Game State",
+            "pages": [
+              "reference/game-store",
+              "reference/types"
+            ]
+          },
+          {
+            "group": "Screens",
+            "pages": [
+              "reference/screens/lobby",
+              "reference/screens/handoff",
+              "reference/screens/acting",
+              "reference/screens/result",
+              "reference/screens/impostor"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Two game modes: Charades (team-based acting) and Impostor (social deduction)",
+    "Real-time countdown timer with configurable durations (30s / 60s / 90s)",
+    "Movie cards fetched from TMDB with poster, synopsis, director, and genres",
+    "Flip-card UI showing movie poster on front and full synopsis on back",
+    "Persistent game state via Zustand + localStorage",
+    "Bilingual support: English and Spanish",
+    "Dark/light theme toggle with system preference detection",
+    "Animated UI with Framer Motion transitions",
+    "No account or login required — fully local multiplayer"
+  ],
+  "publicApiSurface": [
+    "GET /api/movies?count={n} — returns n random high-rated movies from TMDB (1–20)",
+    "useGameStore() — Zustand store for all game state and actions",
+    "useTranslation() — React hook for EN/ES i18n via LangContext",
+    "GameStore interface — full typed surface of actions: startGame, startImpostorGame, correctGuess, endRound, nextTeam, eliminatePlayer, resetGame, refillMovies, etc.",
+    "GameMode type — 'charades' | 'impostor'",
+    "ImpostorState type — 'revealing' | 'word_wait' | 'debate' | 'voting' | 'result'",
+    "Movie interface — id, title, poster_path, year, rating, overview, genres, director",
+    "Team interface — name, score, players, current_player_index",
+    "Player interface — name"
+  ]
+}

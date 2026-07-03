@@ -1,0 +1,51 @@
+---
+title: "La Mubi: Movie Charades and Impostor Party Game Guide"
+sidebarTitle: "Introduction"
+description: "La Mubi is a free, no-account browser party game powered by TMDB. Two modes: silent movie charades for teams, and social-deduction impostor rounds."
+---
+
+La Mubi is a browser-based local-multiplayer party game that turns movie knowledge into pure social entertainment — no app download, no account, no subscription required. Powered by the TMDB API, it surfaces high-rated films complete with posters, synopses, directors, genres, and Letterboxd links, then challenges your group in two distinct ways: act out a movie in silence while your team races to guess it, or smoke out the one player who never saw the film before the group votes them off. Everything runs in a single browser window you pass around the room, making it perfect for game nights, film clubs, or any gathering where people love movies.
+
+<CardGroup cols={2}>
+  <Card title="Charades Mode" href="/game-modes/charades" icon="masks-theater">
+    Act out high-rated films in silence while your team races to guess the title before the timer runs out.
+  </Card>
+  <Card title="Impostor Mode" href="/game-modes/impostor" icon="user-secret">
+    One player doesn't know the movie. Debate, bluff, and vote to unmask the impostor before they escape.
+  </Card>
+  <Card title="Quickstart" href="/quickstart" icon="rocket">
+    Clone the repo, add your TMDB API key, and have the game running locally in five minutes or less.
+  </Card>
+  <Card title="Configuration" href="/configuration/environment" icon="key">
+    Learn how to set environment variables, tune API options, and prepare La Mubi for production.
+  </Card>
+</CardGroup>
+
+## Key Features
+
+- **Two distinct game modes** — team-based silent Charades and social-deduction Impostor, each with their own lobby flow and scoring logic.
+- **TMDB-powered movie cards** — every round surfaces a real, high-rated film with its poster, synopsis, director, genres, and a direct Letterboxd link for post-game discussion.
+- **Configurable round timer** — choose 30 s, 60 s, or 90 s per round to match your group's pace.
+- **Team and player management** — add, rename, and reorder teams and players directly from the lobby without leaving the page.
+- **Persistent state via Zustand + localStorage** — game state survives accidental refreshes; the session resumes exactly where you left off.
+- **Bilingual EN/ES support** — full English and Spanish interface, switchable at any time.
+- **Dark and light theme** — toggle between themes to suit the room's lighting or personal preference.
+- **No account needed** — bring your own TMDB API key and the game is ready; players never need to sign in or install anything.
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16 |
+| UI Library | React 19 |
+| State Management | Zustand 5 (with `persist` middleware) |
+| Animation | Framer Motion 12 |
+| Styling | Tailwind CSS 4 |
+| Language | TypeScript 5 |
+| Movie Data | TMDB API |
+
+## How It Works
+
+**Charades mode** follows a handoff loop: the lobby lets teams register and a timer length is chosen, then the device is handed to the acting player who sees the movie card in private. The actor has until the timer expires to mime the film silently; teammates shout guesses and the acting player taps correct or skip. Points are tallied per round and the leaderboard updates before the next team takes the device.
+
+**Impostor mode** runs a social-deduction arc: once players are registered, the game secretly designates one player as the Impostor and shows everyone else the movie title. Each player takes a turn giving a deliberately vague clue — the Impostor must bluff convincingly without knowing the film. After all clues are given, the group debates openly, then votes on who they think is the Impostor. If the vote is correct the team wins; if the Impostor survives, they take the point.

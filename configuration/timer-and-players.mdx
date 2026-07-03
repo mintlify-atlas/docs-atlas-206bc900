@@ -1,0 +1,77 @@
+---
+title: "Configure Timers and Players in La Mubi"
+sidebarTitle: "Timer & Players"
+description: "Set the round duration and manage team rosters in the La Mubi lobby. Supports 30, 60, and 90-second rounds and unlimited players per team."
+---
+
+The La Mubi lobby is where every session is configured before the first round begins. From here you control how long each round lasts, who is playing, and — in Impostor mode — how many players are secretly working against the group. All settings are applied in real time with no page navigation required.
+
+## Round Timer
+
+Before starting a Charades session, select how long each round lasts. Three durations are available:
+
+| Duration | When to use |
+|---|---|
+| **30 seconds** | Fast-paced rounds for experienced players |
+| **60 seconds** | Default — balanced for most groups |
+| **90 seconds** | Relaxed rounds for younger players or large teams |
+
+The lobby's `HandleTimeCard` component renders these three choices directly from the following options array:
+
+```typescript
+const options = [30, 60, 90];
+```
+
+The default selection is **60 seconds**. When a round is active the on-screen countdown turns **red** when fewer than 10 seconds remain as a visual warning. When the timer reaches zero the round ends automatically and the game navigates to the results screen — no host action is needed.
+
+## Debate Timer (Impostor Mode)
+
+The debate timer is separate from the round timer and only applies to **Impostor** mode. It controls the timed discussion phase that players use to identify the impostor before voting begins.
+
+- **Default:** 60 seconds
+- **Where to set it:** The debate duration field is displayed in the Impostor lobby configuration panel, distinct from the `HandleTimeCard` round-timer selector.
+
+Adjust it to give players more or less time to deliberate depending on group size and how quickly they tend to reach consensus.
+
+## Charades Team Setup
+
+Charades splits players into **two fixed teams**. The teams are named **Mad Max** and **La La Land** by default — both names are fully editable. Each team can hold an unlimited number of players.
+
+<Steps>
+  <Step title="Edit team names">
+    Tap the team name field and type a new name inline. Changes are reflected immediately in the lobby.
+  </Step>
+  <Step title="Add players">
+    Press the **+ Add Player** button beneath the team roster to append a new player slot.
+  </Step>
+  <Step title="Edit player names">
+    Tap any player name field and type directly to rename that player.
+  </Step>
+  <Step title="Remove players">
+    Press the **✕** button to the right of a player entry to remove them from the roster.
+  </Step>
+</Steps>
+
+<Info>
+  All player name fields must be filled in before the **Start** button activates. Empty name slots will keep the button disabled.
+</Info>
+
+## Impostor Player Setup
+
+Impostor mode uses a single shared player list rather than teams. Players take turns being judged by the group, and one or more of them are secretly assigned the impostor role each round.
+
+<Steps>
+  <Step title="Add players">
+    Press **+ Add Player** to add a new entry to the shared roster.
+  </Step>
+  <Step title="Name each player">
+    Tap each player's name field and type their name. All names must be filled in before the game can begin.
+  </Step>
+  <Step title="Set the impostor count">
+    Use the impostor count control to choose how many impostors are assigned per round. The minimum is **1** and the maximum is calculated as `floor((N - 1) / 2)`, where N is the total number of players. This ensures the honest majority can always outvote the impostors.
+  </Step>
+</Steps>
+
+<Note>
+  A minimum of **3 players** is required to start Impostor mode. If you remove players and the current impostor count would exceed the maximum for the new roster size, it is automatically reduced to stay within the valid range.
+</Note>

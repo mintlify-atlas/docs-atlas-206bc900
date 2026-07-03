@@ -1,0 +1,107 @@
+---
+title: "Lobby Screen: Configure and Start Your La Mubi Game"
+sidebarTitle: "Lobby"
+description: "The La Mubi lobby is where you choose Charades or Impostor mode, set up teams and players, configure the round timer, and launch the session."
+---
+
+The Lobby is the first screen players see before every session. It centralises every configuration decision — game mode, team composition, player names, timer length, and (in Impostor mode) the number of impostors — into a single page so the group can agree on settings before handing the device to the first performer.
+
+<Badge variant="default">GET /lobby</Badge>
+
+## Mode Selection
+
+Two modes are available. Selecting a mode updates the layout and the "How to Play" instructions shown on the right-hand side of the screen.
+
+<Tabs>
+  <Tab title="Charades">
+    **Component:** `HandleTeamsCard`
+
+    Teams and their players are managed through the `HandleTeamsCard` component. Each team must have at least one player, and every player must have a non-empty name before the game can start.
+
+    The round timer is configured with `HandleTimeCard`. The selected duration (in seconds) becomes `initial_timer` in the game store and is reset at the start of every turn.
+
+    **How to Play steps shown:**
+    1. Choose teams and add at least one player per team.
+    2. Name every player — blank names block the Start button.
+    3. Set how many seconds each performer has per round.
+    4. Hand the device to the first performer at the Handoff screen.
+    5. Actors may not speak — mime, gesture, and facial expressions only.
+
+    **On start:** `prepareGame()` is called, then a fetch to `/api/movies?count=8` is issued. The response is passed to `startGame(movies)`, which loads the first movie as `current_movie` and queues the rest. The router then navigates to `/handoff`.
+  </Tab>
+  <Tab title="Impostor">
+    **Component:** `HandlePlayersCard`
+
+    Individual players (not teams) are managed through `HandlePlayersCard`. A minimum of **three** named players is required.
+
+    Two additional selectors appear:
+
+    | Selector | Values | Store field |
+    |---|---|---|
+    | Number of Impostors | 1 – ⌊(n−1)/2⌋ | `impostorCount` |
+    | Debate Timer | 30 s / 60 s / 90 s | `debate_timer` |
+
+    The impostor count upper bound is automatically clamped whenever a player is removed: `max = Math.floor((players.length - 1) / 2)`.
+
+    **How to Play steps shown:**
+    1. Add every player by name.
+    2. Choose how many impostors to include.
+    3. Set the debate timer length.
+    4. Pass the device for sequential role reveals.
+    5. Discuss, debate, and vote to eliminate the impostor(s).
+
+    **On start:** `prepareGame()` is called, then the router navigates to `/impostor`. Movie fetching is deferred — the Impostor screen fetches `/api/movies?count=8` on mount.
+  </Tab>
+</Tabs>
+
+## Controls
+
+| Control | Location | Action |
+|---|---|---|
+| Mode selector buttons | Top of page | Calls `setGameMode('charades' \| 'impostor')`, re-renders the setup panel |
+| **Begin Match** button | Footer | Calls `handleStartLogic()` — see [Start Conditions](#start-conditions) |
+| `ThemeToggle` | Header (top-right) | Toggles light / dark theme |
+| `LanguageToggle` | Header (top-right) | Switches the UI language |
+
+The **Begin Match** button is disabled (styled as muted, `cursor-not-allowed`) when `canStart` is `false`. No toast or error message is shown; the hint text "Name all players" appears beneath the player count instead.
+
+## Start Conditions
+
+The `canStart` boolean is derived directly from the current store state on every render.
+
+<Tabs>
+  <Tab title="Charades">
+    ```ts
+    const canStart =
+      teams.length > 0 &&
+      teams.every(
+        (team) =>
+          team.players.length > 0 &&
+          team.players.every((player) => player.name.trim().length > 0)
+      );
+    ```
+
+    Both conditions must be true simultaneously:
+
+    - Every team has at least one player (`team.players.length > 0`).
+    - Every player in every team has a non-blank name (`player.name.trim().length > 0`).
+
+    The default store ships with two pre-named teams (`Mad Max` and `La La Land`) but with empty player lists, so `canStart` is `false` on first load.
+  </Tab>
+  <Tab title="Impostor">
+    ```ts
+    const canStart =
+      players.length >= 3 &&
+      players.every((p) => p.name.trim().length > 0);
+    ```
+
+    Both conditions must be true simultaneously:
+
+    - At least three players have been added (`players.length >= 3`).
+    - Every player has a non-blank name (`p.name.trim().length > 0`).
+  </Tab>
+</Tabs>
+
+<Tip>
+  The lobby prefetches `/handoff`, `/acting`, and `/result` on mount via `router.prefetch()`. Once the game starts, navigation to those routes is instant with no loading delay.
+</Tip>

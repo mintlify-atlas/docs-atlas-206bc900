@@ -1,0 +1,145 @@
+---
+title: "useGameStore — Zustand Game Store Reference (La Mubi)"
+sidebarTitle: "Game Store"
+description: "useGameStore is the central Zustand store for La Mubi, managing game state, timers, movie queues, and team scores across Charades and Impostor modes."
+---
+
+`useGameStore` is the single source of truth for every active game session in La Mubi. Built with [Zustand](https://github.com/pmndrs/zustand) and its `persist` middleware, it manages timers, movie queues, team scores, player rosters, and the full impostor-mode state machine — all of which survive page reloads thanks to automatic `localStorage` serialisation.
+
+## Importing
+
+```typescript
+import { useGameStore } from '@/hooks/useGameStore';
+```
+
+## Persistence
+
+The store is persisted to `localStorage` under the key **`lamubi-game`** using Zustand's `persist` middleware. On page reload, the following fields are automatically rehydrated from storage:
+
+`gameMode`, `players`, `impostorState`, `revealIndex`, `impostorIndices`, `impostorCount`, `eliminatedIndices`, `teams`, `current_team_index`, `timer`, `initial_timer`, `debate_timer`, `movies`, `current_movie`, `game_state`
+
+Any transient fields not in `partialize` (e.g. `lastEliminatedIndex`) are not persisted and will reset to their initial values on reload.
+
+## State
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `game_state` | `'idle' \| 'loading' \| 'playing' \| 'acting' \| 'finished'` | `'idle'` | Top-level lifecycle state shared by both game modes. |
+| `gameMode` | `'charades' \| 'impostor'` | `'charades'` | Which game mode is active. Controls which actions and screens are used. |
+| `teams` | `Team[]` | `[{name:'Mad Max',…}, {name:'La La Land',…}]` | Array of teams, each with a name, score, player roster, and current player pointer. Used in Charades mode. |
+| `players` | `Player[]` | `[]` | Flat list of individual players. Used in Impostor mode. |
+| `current_team_index` | `number` | `0` | Index into `teams` identifying whose turn it is in Charades mode. |
+| `timer` | `number` | `60` | Current countdown value in seconds. Decremented by `decrementTimer()`. |
+| `initial_timer` | `number` | `60` | Baseline round timer (seconds) applied at the start of each acting phase. |
+| `debate_timer` | `number` | `60` | Baseline debate timer (seconds) applied when the impostor debate phase starts. |
+| `movies` | `Movie[]` | `[]` | The current movie queue. The store refills this automatically when fewer than 3 remain. |
+| `current_movie` | `Movie \| null` | `null` | The movie currently being acted out or described. |
+| `impostorState` | `'revealing' \| 'word_wait' \| 'debate' \| 'voting' \| 'result'` | `'revealing'` | Sub-state machine for the Impostor game flow. |
+| `revealIndex` | `number` | `0` | Index of the player whose role card is currently being revealed. |
+| `impostorIndices` | `number[]` | `[]` | Indices into `players` that were randomly assigned the impostor role. |
+| `impostorCount` | `number` | `1` | How many impostors are assigned per round. |
+| `eliminatedIndices` | `number[]` | `[]` | Indices of players who have been voted out during an impostor round. |
+| `lastEliminatedIndex` | `number \| null` | `null` | Index of the most recently eliminated player. Used to drive the result screen. Not persisted. |
+
+## Charades Actions
+
+### `setGameMode(mode: GameMode): void`
+Sets `gameMode` to `'charades'` or `'impostor'`. Should be called from the lobby before any game is prepared.
+
+### `prepareGame(): void`
+Transitions `game_state` to `'loading'`, resets all team scores to `0`, and resets `current_team_index` to `0`. Call this before fetching movies to signal that the app is preparing a new session.
+
+### `startGame(movies: Movie[]): void`
+Transitions `game_state` to `'playing'`, loads the provided movie array into the queue, and sets `current_movie` to the first entry. Call this once the `/api/movies` fetch resolves.
+
+### `startActing(): void`
+Transitions `game_state` to `'acting'` and starts the round. The timer begins counting down (driven externally by `decrementTimer`).
+
+### `correctGuess(): void`
+Increments the current team's `score` by `1`. Call this each time the active team guesses the movie title correctly.
+
+### `endRound(): void`
+Sets `game_state` to `'finished'`. Navigates the app to the round-result screen.
+
+### `nextTeam(): void`
+Advances `current_team_index` to the next team (wrapping around), advances `current_player_index` within the outgoing team, and loads the next `current_movie` from the queue.
+
+### `skipMovie(): void`
+Advances `current_movie` to the next movie in the queue without awarding a point. If fewer than `3` movies remain after skipping, automatically triggers `refillMovies()`.
+
+### `refillMovies(): Promise<void>`
+Fetches `GET /api/movies?count=8` and appends the returned movies to the existing `movies` queue. Called automatically by `skipMovie()` and can be called manually.
+
+### `decrementTimer(): void`
+Subtracts `1` from `timer`, clamped to a minimum of `0`. Wire this to a `setInterval` or `requestAnimationFrame` loop during the acting phase.
+
+### `resetScores(): void`
+Resets all team scores to `0` and returns `game_state` to `'idle'`.
+
+### `resetGame(): void`
+Performs a full store reset. In Charades mode, teams are reset to the two initial defaults (`Mad Max` and `La La Land`). Movie queue and all transient state is cleared.
+
+### Team & Timer Actions
+
+| Action | Signature | Description |
+|--------|-----------|-------------|
+| `updateTeamName` | `(index: number, name: string): void` | Renames the team at `index`. |
+| `addPlayer` | `(teamIndex: number, playerName: string): void` | Appends a player to the specified team's roster. |
+| `removePlayer` | `(teamIndex: number, playerIndex: number): void` | Removes a player from a team by index. |
+| `updatePlayerName` | `(teamIndex: number, playerIndex: number, newName: string): void` | Updates a player's name within a team. |
+| `setInitialTimer` | `(seconds: number): void` | Sets both `initial_timer` and the live `timer` to the given value. |
+
+## Impostor Actions
+
+### `startImpostorGame(movies: Movie[]): void`
+Randomly assigns `impostorCount` players from `players` as impostors (stored in `impostorIndices`), loads the movie queue, sets `current_movie`, and transitions `game_state` to `'playing'` with `impostorState` starting at `'revealing'`.
+
+### `nextReveal(): void`
+Advances `revealIndex` by `1` so the next player's role card is shown. When all players have been revealed, transitions `impostorState` to `'word_wait'`.
+
+### `startDebate(): void`
+Transitions `impostorState` to `'debate'` and resets `timer` to the value of `debate_timer`. The countdown should begin immediately via `decrementTimer()`.
+
+### `stopDebate(): void`
+Transitions `impostorState` to `'voting'`, signalling that the host should now select a player to eliminate.
+
+### `eliminatePlayer(index: number): void`
+Adds `index` to `eliminatedIndices` and evaluates the win condition: if all impostors are eliminated the game ends; if enough innocents are out the impostor wins. Sets `impostorState` to `'result'` on a terminal outcome. On a non-terminal outcome, sets `impostorState` to `'word_wait'` and records `index` in `lastEliminatedIndex` to drive the result screen.
+
+### `skipElimination(): void`
+Skips the elimination vote for the current round and sets `impostorState` back to `'word_wait'`.
+
+### `setDebateTimer(seconds: number): void`
+Updates `debate_timer`. Takes effect on the next call to `startDebate()`.
+
+### `setImpostorCount(count: number): void`
+Sets how many impostors are assigned when `startImpostorGame()` is called.
+
+### Individual Player Actions
+
+| Action | Signature | Description |
+|--------|-----------|-------------|
+| `addIndividualPlayer` | `(name: string): void` | Appends a player to the `players` array used in Impostor mode. |
+| `removeIndividualPlayer` | `(index: number): void` | Removes the player at `index` from `players`. |
+| `updateIndividualPlayerName` | `(index: number, name: string): void` | Updates the name of the player at `index` in `players`. |
+
+## Usage Example
+
+```typescript
+const { game_state, correctGuess, teams, current_team_index } = useGameStore();
+
+// Mark current team's answer correct
+correctGuess();
+
+// Access current team's score
+const score = teams[current_team_index].score;
+```
+
+<Tip>
+  Because the store is a Zustand hook, you can subscribe to only the slices you need to prevent unnecessary re-renders:
+
+  ```typescript
+  const correctGuess = useGameStore((s) => s.correctGuess);
+  const score = useGameStore((s) => s.teams[s.current_team_index].score);
+  ```
+</Tip>

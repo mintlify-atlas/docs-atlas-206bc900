@@ -1,0 +1,75 @@
+---
+title: "Language and Theme Settings in La Mubi"
+sidebarTitle: "Language & Theme"
+description: "La Mubi supports English and Spanish with full in-game translations. Both language and dark/light theme preferences are stored in localStorage."
+---
+
+La Mubi ships with complete English and Spanish translations for every string in the game, and a dark/light theme toggle that respects your operating system preference. Both preferences are stored in the browser's `localStorage` so they persist across sessions without any account or server state. Changes take effect immediately — no page reload required.
+
+## Switching Languages
+
+The **LanguageToggle** component, rendered as a globe icon in the interface, switches the entire application between English and Spanish with a single tap. The selected language is written to `localStorage` under the key `lamubi-lang`.
+
+| Value | Language |
+|---|---|
+| `'en'` | English (default) |
+| `'es'` | Spanish |
+
+To prevent the browser's built-in translation feature from interfering with the game's own translations, La Mubi sets `translate="no"` on `document.documentElement` whenever one of the two built-in languages (`'en'` or `'es'`) is active. This suppresses prompts such as Chrome's "Translate this page?" banner. The attribute is removed if the active language is not one of the built-in ones.
+
+## Language Persistence
+
+The `LangProvider` component reads `lamubi-lang` from `localStorage` on mount and initialises the translation context before any game UI renders. The selected language survives page refreshes and browser restarts as long as the user does not clear site data.
+
+The accepted values for the key are:
+
+```typescript
+// lamubi-lang values
+'en' | 'es'
+```
+
+If the key is absent (e.g., on first visit), La Mubi defaults to `'en'`.
+
+## Switching Themes
+
+The **ThemeToggle** button switches between dark and light mode. The current theme is stored in `localStorage` under the key `lamubi-theme`.
+
+| Stored value | Effect |
+|---|---|
+| `'dark'` | Dark mode active |
+| `'light'` | Light mode active |
+| *(key absent)* | Light mode active (first visit; system preference checked) |
+
+On first visit — before any preference is stored — La Mubi checks the operating system's `prefers-color-scheme: dark` media query and applies dark mode automatically if it matches. This detection runs via an inline script injected into `<head>` in `layout.tsx`, which executes before the browser paints any content, preventing a flash of incorrectly themed UI.
+
+## Theme Persistence
+
+The inline script that runs in `<head>` before the first paint applies the correct class to `<html>` immediately, before React hydrates. The logic is:
+
+```javascript
+// Runs in <head> before paint
+var t = localStorage.getItem('lamubi-theme');
+if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme:dark)').matches)) {
+  document.documentElement.classList.add('dark');
+}
+```
+
+When the user toggles the theme via `ThemeToggle`, the component updates both `localStorage` and the `dark` class on `document.documentElement` in sync, so the change is instant and durable.
+
+## Adding New Languages
+
+The translation system is designed to be extended. To add a new language:
+
+1. Open `useTranslation.tsx`.
+2. Add a new translations object containing every key present in the `'en'` and `'es'` dictionaries.
+3. Register the new object in the `all` map with its locale string as the key (e.g., `'fr'` for French).
+
+The `t()` function used throughout the app supports **string interpolation** for dynamic values. Pass a params object as the second argument and reference keys inside the translation string with curly-brace placeholders:
+
+```typescript
+// Example translation string: "Round {count} of {total}"
+t('roundOf', { count: 3, total: 5 })
+// → "Round 3 of 5"
+```
+
+The same interpolation syntax works in all languages — the `t()` function replaces `{count}`, `{name}`, and any other keys from the params object regardless of locale.

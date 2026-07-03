@@ -1,0 +1,74 @@
+---
+title: "Configure the TMDB API Key for La Mubi"
+sidebarTitle: "Environment"
+description: "La Mubi requires a free TMDB API key to fetch movie data. Set TMDB_API_KEY in your .env file before starting the development server."
+---
+
+La Mubi fetches all movie data at runtime through a server-side Next.js API route. That route authenticates with [The Movie Database (TMDB)](https://www.themoviedb.org) using a single environment variable, `TMDB_API_KEY`. Without it the server will not start movie discovery and the game cannot load any films. TMDB accounts and v3 API keys are free and require no payment information.
+
+## Obtaining a TMDB API Key
+
+<Steps>
+  <Step title="Create a free TMDB account">
+    Visit [https://www.themoviedb.org](https://www.themoviedb.org) and register. No credit card is required.
+  </Step>
+  <Step title="Open the API settings page">
+    After logging in, go to [Settings › API](https://www.themoviedb.org/settings/api).
+  </Step>
+  <Step title="Request a Developer API key">
+    Click **Request an API Key** and select the **Developer** option. Approval is instant for personal projects.
+  </Step>
+  <Step title="Copy the v3 key">
+    Under **API Key (v3 auth)**, copy the 32-character hex string. This is the value you will paste into your `.env` file.
+  </Step>
+</Steps>
+
+## Creating the .env File
+
+Create a file named `.env` at the root of your La Mubi project (the same directory that contains `package.json`) and add the following line, replacing `your_key_here` with the key you copied:
+
+```env .env
+TMDB_API_KEY=your_key_here
+```
+
+<Warning>
+  Never commit your `.env` file to version control. It is already listed in `.gitignore` — verify that entry is present before your first `git push`.
+</Warning>
+
+## How It's Used
+
+`TMDB_API_KEY` is consumed exclusively inside the server-side Next.js route handler at `GET /api/movies`. The key is read with `process.env.TMDB_API_KEY` and is never serialised into the client bundle or exposed to the browser.
+
+The route makes two types of TMDB requests:
+
+| Request | Endpoint |
+|---|---|
+| Movie discovery (list of films) | `https://api.themoviedb.org/3/discover/movie` |
+| Movie detail with cast | `https://api.themoviedb.org/3/movie/{id}?append_to_response=credits` |
+
+Both calls are made server-to-server, keeping your key invisible to players.
+
+## Production Deployment
+
+When deploying to Vercel, environment variables must be added through the dashboard — `.env` files are not uploaded.
+
+<Steps>
+  <Step title="Open your project settings">
+    In the Vercel dashboard select your project, then navigate to **Settings › Environment Variables**.
+  </Step>
+  <Step title="Add the variable">
+    Set the **Name** field to exactly `TMDB_API_KEY` (case-sensitive) and paste your v3 key into the **Value** field.
+  </Step>
+  <Step title="Select target environments">
+    Enable the variable for **Production** at minimum. Add it to **Preview** and **Development** environments if you want parity across branches.
+  </Step>
+  <Step title="Redeploy">
+    Trigger a new deployment after saving. Vercel only injects environment variables at build/start time, so existing deployments will not pick up the change automatically.
+  </Step>
+</Steps>
+
+## Environment Variables Reference
+
+| Variable | Required | Description |
+|---|---|---|
+| `TMDB_API_KEY` | Yes | TMDB v3 API key for movie discovery and detail fetching |

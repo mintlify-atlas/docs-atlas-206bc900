@@ -1,0 +1,78 @@
+---
+title: "Handoff Screen: Private Movie Reveal Before Acting"
+sidebarTitle: "Handoff"
+description: "The handoff screen shows the acting player their assigned movie card privately before the round starts. Teammates must not see the screen during handoff."
+---
+
+The Handoff screen is the privacy gate between rounds. It surfaces the current movie exclusively to the acting player so they can study it before miming it to their team. The screen is intentionally minimal — a single movie card, the player's name, and two actions — to keep the reveal quick and focused.
+
+<Badge variant="default">GET /handoff</Badge>
+
+## What's Displayed
+
+| Element | Details |
+|---|---|
+| **Next Performer label** | The `current_player.name` pulled from `teams[current_team_index].players[current_player_index]` |
+| **Team name** | `teams[current_team_index].name` |
+| **Instruction text** | "Memorize the movie details. You will act it out for your team without speaking." |
+| **MovieCard** | The `current_movie` from the game store (see [MovieCard flip behavior](#moviecard-flip-behavior)) |
+
+If either the game state is `'loading'` or `current_movie` is `null`, a skeleton placeholder — a spinner with an animated "Loading" label — is rendered in place of the `MovieCard`. The action buttons are hidden during this state.
+
+## Movie Loading
+
+When `game_state` is `'loading'` on mount (for example, after navigating directly to `/handoff` or after a hard refresh mid-game), the screen automatically fetches a fresh batch of movies:
+
+```ts
+// Triggered once on mount when game_state === 'loading'
+fetch('/api/movies?count=8')
+  .then((res) => res.json())
+  .then((data) => {
+    if (Array.isArray(data) && data.length > 0) {
+      startGame(data); // sets game_state → 'playing', loads first movie
+    }
+  });
+```
+
+The fetch is guarded by a `cancelled` flag (cleanup function) so stale responses from unmounted components are discarded. Once `startGame(data)` resolves, `current_movie` is populated and the `MovieCard` replaces the skeleton.
+
+## Actions
+
+<AccordionGroup>
+  <Accordion title="I'm Ready → /acting">
+    Rendered as a `NavButton` with `variant="primary"`.
+
+    **Sequence:**
+    1. Calls `startActing()` — sets `game_state` to `'acting'` in the store.
+    2. Navigates to `/acting`.
+
+    This button is hidden while the skeleton is visible (`showSkeleton === true`).
+  </Accordion>
+  <Accordion title="Skip This Movie">
+    Rendered as a plain `<button>` styled as a muted text link.
+
+    **Sequence:**
+    1. Calls `skipMovie()`.
+    2. `skipMovie()` pops the first item from the `movies` queue and sets it as `current_movie`.
+    3. If the queue drops below three movies after the skip, `refillMovies()` is triggered automatically to fetch another batch of eight from `/api/movies?count=8`.
+
+    The acting player stays on `/handoff` after skipping — no navigation occurs.
+
+    This button is hidden while the skeleton is visible (`showSkeleton === true`).
+  </Accordion>
+</AccordionGroup>
+
+## MovieCard Flip Behavior
+
+The `MovieCard` component uses a 3-D CSS flip animation (powered by Framer Motion) to expose two faces:
+
+| Face | Content |
+|---|---|
+| **Front** | Movie poster, title, year in parentheses, TMDB rating out of 10 |
+| **Back** | Synopsis (italic, scrollable), director, genres (bullet-separated), Letterboxd link |
+
+Tapping or clicking anywhere on the card toggles `isFlipped`. On the Handoff screen, `showHint={true}` is passed to the card, which adds a subtle corner triangle indicator on mobile and a hover-state "Tap to Flip" label on desktop so the acting player knows the card is interactive.
+
+<Note>
+  Pass the device face-down to the acting player. Tap to reveal the movie, memorize it, then pass it back face-down before pressing **I'm Ready**. Teammates must not see the screen during this step.
+</Note>

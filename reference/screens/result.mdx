@@ -1,0 +1,62 @@
+---
+title: "Result Screen: Round Summary, Scores, and Next Turn"
+sidebarTitle: "Result"
+description: "After each Charades round, the result screen reveals the movie, shows all team scores, previews the next performer, and lets the host start the next turn."
+---
+
+The Result screen closes each Charades round. It reveals the movie that was being mimed, displays a live scoreboard for all teams, previews who performs next, and gives the host two navigation options: advance to the next turn or close the session and return to the lobby.
+
+<Badge variant="default">GET /result</Badge>
+
+## What's Displayed
+
+### Current Movie Card
+
+The `MovieCard` component is rendered with `showHint={true}` so the flip-hint indicator (corner triangle on mobile, hover label on desktop) is visible. When no `movie` prop is passed it falls back to `current_movie` from the game store. Players can tap the card to flip it and read the full synopsis, director, and genres — useful for post-round discussion about whether the mime was fair.
+
+### Score List
+
+The `ScoreList` component reads `teams` from the game store and renders every team's name alongside its current `score`. Scores are displayed as large tabular numerals and animate with a pop keyframe whenever a value changes.
+
+### Next Up Preview
+
+Before the host presses **Next Turn**, the screen calculates and shows a preview of the next performer:
+
+```ts
+const nextIndex = (current_team_index + 1) % teams.length;
+const nextTeamData = teams[nextIndex];
+const nextPlayerIndex =
+  nextTeamData?.players.length > 0
+    ? (nextTeamData.current_player_index + 1) % nextTeamData.players.length
+    : 0;
+const nextPlayer = nextTeamData?.players[nextPlayerIndex];
+```
+
+The preview card shows the next player's name and their team name. It is hidden if `nextPlayer` is `undefined`.
+
+## Actions
+
+<AccordionGroup>
+  <Accordion title="Next Turn → /handoff">
+    Rendered as a `NavButton` with the default (primary) variant.
+
+    **Sequence:**
+    1. Calls `nextTeam()`:
+       - Advances `current_team_index` to `(current_team_index + 1) % teams.length`.
+       - Increments `current_player_index` on the team that just acted, cycling back to `0` after the last player.
+       - Sets `game_state` back to `'playing'`.
+       - Resets `timer` to `initial_timer`.
+       - Pops the first movie from the `movies` queue and sets it as `current_movie`.
+       - If `movies.length < 3` after the pop, calls `refillMovies()` to fetch another batch of eight from `/api/movies?count=8` and appends them to the queue.
+    2. Navigates to `/handoff`.
+  </Accordion>
+  <Accordion title="Finish Game / Lobby → /lobby">
+    Rendered as a `NavButton` with `variant="secondary"`.
+
+    Navigates directly to `/lobby`. **Scores are not reset** by this action — the current standings are preserved in the Zustand `persist` store so the group can review them in the lobby. Call `resetGame()` (or `resetScores()`) manually from the lobby if you want to start fresh.
+  </Accordion>
+</AccordionGroup>
+
+<Tip>
+  Scores persist across rounds and browser refreshes via Zustand's `persist` middleware (stored under the key `"lamubi-game"` in `localStorage`). You can close the browser mid-game and return to the same session. To wipe scores, use the lobby or call `resetGame()` from the store.
+</Tip>

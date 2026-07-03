@@ -1,0 +1,79 @@
+---
+title: "Charades Mode: Act Out Movies for Your Team in La Mubi"
+sidebarTitle: "Charades"
+description: "In Charades mode, one player silently acts out a TMDB movie while teammates race to guess the title. Choose from 30, 60, or 90-second rounds."
+---
+
+Charades mode is La Mubi's team-based acting challenge. Two teams compete across alternating rounds: the designated actor for that turn receives a movie card in private, then has to mime the title to their teammates — no words, no sounds, nothing but body language and expression. Teammates shout their guesses freely until someone lands the right title or the clock runs out. Every correct guess earns the team a point, and the roles keep rotating so everyone gets time in the spotlight. The team that racks up the most points across all rounds wins.
+
+## How to Play
+
+<Steps>
+  <Step title="Form your teams">
+    In the lobby, select **Charades** and set up two teams. Each team starts with the default name — **Mad Max** for the first team and **La La Land** for the second — but you can rename them to anything you like. Add at least one player to each team and type a name for every player before continuing.
+  </Step>
+
+  <Step title="Set the round timer">
+    Choose how long each acting turn will last: **30 seconds**, **60 seconds**, or **90 seconds**. Pick a shorter limit for a frantic, high-energy session or a longer one if your group prefers a more relaxed pace.
+  </Step>
+
+  <Step title="Start the game">
+    Once every team has at least one player and all player name fields are filled in, the **Start** button becomes active. Tap it and the game fetches a fresh queue of eight movies from TMDB. The device is then ready to be handed to the first acting player.
+  </Step>
+
+  <Step title="Review the movie card in private">
+    The **Handoff screen** shows the acting player their movie card before the round begins. The front of the card displays the poster, title, release year, and audience rating. Flip it over to reveal the synopsis, director, and genres — useful context for planning your performance. This screen is just for the actor; keep it hidden from teammates.
+  </Step>
+
+  <Step title="Act it out — silently">
+    Once the actor is ready, the **Acting screen** begins the countdown. The actor must communicate the movie title to their team using **only physical performance** — no speaking, mouthing words, or making any sounds. Teammates call out guesses freely from across the room.
+  </Step>
+
+  <Step title="Score the round and rotate">
+    If a teammate guesses correctly, the actor taps **Guessed!** to award the point and end the round. If time runs out or the team gives up, the actor can tap **Surrender** to end the round without scoring. The **Result screen** then shows the movie, updated team standings, and a preview of who is up next. Tap **Next Turn** to pass the device and continue, or **Finish Game / Lobby** to wrap up the session.
+  </Step>
+</Steps>
+
+## Scoring
+
+Each correct guess earns the acting player's team **1 point**. There is no partial credit and no penalty for incorrect guesses during the round — teammates can shout as many wrong answers as they like without consequence. Points accumulate across every round and are always visible on the **Result screen** standings after each turn. The team with the highest score when the group decides to stop wins.
+
+## Team Setup
+
+The lobby configures **two teams** by default. Both team names are fully editable — click or tap a name to rename it. Within each team, add as many players as you want and type a name for every one of them. The game enforces two conditions before allowing the session to start: every team must have at least one player, and every player name field must be non-empty. No team can enter a round empty, and no one can slip in as a blank entry.
+
+Teams alternate turns throughout the game. After each round, `nextTeam()` advances to the opposite team. Within a team, the acting role moves to the next player in the roster on each of that team's turns, cycling back to the top once everyone has had a go.
+
+## Round Timer
+
+Three timer lengths are available from the lobby:
+
+| Duration | Best for |
+|---|---|
+| **30 seconds** | Experienced players or a fast, chaotic game |
+| **60 seconds** | A balanced session — the default choice for most groups |
+| **90 seconds** | Younger players or groups new to movie charades |
+
+The countdown is displayed in large numerals on the Acting screen. When **fewer than 10 seconds remain, the timer turns red** as a visual warning to both the actor and the audience. If the timer reaches zero before a guess is made, the round ends automatically and the game navigates to the Result screen without any further input needed.
+
+## Movie Cards
+
+Each movie card is a flippable component that gives the acting player two layers of information:
+
+**Front of card**
+- Movie poster (from TMDB)
+- Title
+- Release year
+- Audience rating
+
+**Back of card**
+- Full synopsis
+- Director
+- Genres
+- Direct link to the film's Letterboxd page for post-game discussion
+
+The card is shown privately on the Handoff screen before the round clock starts, giving the actor time to study the details and plan their performance without pressure.
+
+<Tip>
+  You can skip a movie from the Handoff screen if the acting player has already seen it and feels it would be too easy or too hard. The queue auto-refills whenever fewer than 3 movies remain — it fetches 8 new titles from TMDB — so you will never run out of fresh films mid-session.
+</Tip>

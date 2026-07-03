@@ -1,0 +1,137 @@
+---
+title: "Impostor Screen: Social Deduction Game Full Lifecycle"
+sidebarTitle: "Impostor"
+description: "The impostor screen manages all five phases of Impostor mode: role reveal, word round, debate, voting, and result. The entire game runs on a single route."
+---
+
+The Impostor screen hosts the complete Impostor mode lifecycle from role reveal to final verdict. All five phases run on a single route — `impostorState` in the game store drives which phase UI is rendered. On mount, the screen fetches the movie batch if one hasn't been loaded yet, assigns impostor roles at random, and immediately enters the sequential role-reveal flow.
+
+<Badge variant="default">GET /impostor</Badge>
+
+## Movie Loading
+
+When `game_state` is `'idle'` or `'loading'` on mount, the screen fetches a movie batch and initialises the game:
+
+```ts
+fetch('/api/movies?count=8')
+  .then((res) => res.json())
+  .then((data) => {
+    if (Array.isArray(data) && data.length > 0) {
+      startImpostorGame(data);
+    }
+  });
+```
+
+`startImpostorGame(movies)` sets `game_state` to `'playing'`, assigns `impostorIndices` by shuffling the player array and slicing the first `impostorCount` indices, loads the first movie as `current_movie`, and queues the rest. A full-screen spinner is shown until `revealReady` becomes `true` (game is playing, movie is loaded, and impostor indices are assigned).
+
+## Phase Overview
+
+| Phase | `impostorState` value | Entry trigger | Exit trigger |
+|---|---|---|---|
+| Role Reveal | `'revealing'` | `startImpostorGame()` | Last player taps through their reveal |
+| Word Round | `'word_wait'` | All players revealed; or voting skip | Host taps **Start Debate** |
+| Debate | `'debate'` | `startDebate()` | Timer expires or host taps **Stop Debate** |
+| Voting | `'voting'` | `stopDebate()` | Player eliminated or host taps **Don't eliminate** |
+| Result | `'result'` | Win condition met in `eliminatePlayer()` | Host taps **Back to Lobby** |
+
+## Role Reveal Phase
+
+`impostorState === 'revealing'`
+
+The device is passed from player to player. Each player taps through up to three sequential screens, driven by the `showIntro` and `showRole` local state flags:
+
+1. **Intro screen** (`showIntro === true`) — Shows only the player's name and a phone icon. Tapping sets `showIntro = false`, revealing the role view.
+2. **Role screen** (`showIntro === false`, `showRole === true`) — Shows the player's role:
+   - **Impostors:** A bold red message (e.g. "You are the IMPOSTOR!") and the hint "Fake it — you don't know the movie." The movie card is never shown to impostors.
+   - **Non-impostors:** The full `MovieCard` with `showHint={true}` so they can flip to read the synopsis, director, and genres.
+   - **If this is the last player** (`isLastReveal === true`): tapping calls `nextReveal()` directly, which transitions `impostorState` to `'word_wait'`. There is no pass screen for the final player.
+3. **Pass screen** (`showIntro === false`, `showRole === false`, non-last players only) — Shows the phone icon and the next player's name. Tapping calls `nextReveal()` to increment `revealIndex` and resets `showRole = true` for the next player's intro.
+
+`isLastReveal` is `true` when `revealIndex >= players.length - 1`. After the final player's role tap, `nextReveal()` detects that the next index would exceed the player list and sets `impostorState = 'word_wait'`.
+
+## Word Round Phase
+
+`impostorState === 'word_wait'`
+
+The screen presents a simple prompt to the group:
+
+> **Word Round** — Each player says one word related to the movie.
+
+If a player was just eliminated in the previous voting round, a banner displays whether the eliminated player was an impostor or not (so the group knows if they were on the right track).
+
+Once every player has said their word, the host taps **Start Debate**, which calls `startDebate()` and transitions to `'debate'`. `startDebate()` also resets `timer` to `debate_timer` and clears `lastEliminatedIndex`.
+
+## Debate Phase
+
+`impostorState === 'debate'`
+
+A `Timer` component counts down from `debate_timer` (30, 60, or 90 seconds as configured in the lobby). The timer is passed `value={timer}`, `running={true}`, and `onEnd={stopDebate}`.
+
+| Control | Action |
+|---|---|
+| Timer expires naturally | `stopDebate()` → `impostorState = 'voting'` |
+| **Stop Debate** button | `stopDebate()` → `impostorState = 'voting'` |
+
+The group uses the debate window to discuss clues and accusations before the vote.
+
+## Voting Phase
+
+`impostorState === 'voting'`
+
+The screen lists every **active** (non-eliminated) player as a tappable button. Active players are derived as:
+
+```ts
+const activePlayers = players.filter((_, i) => !eliminatedIndices.includes(i));
+```
+
+Tapping a name calls `eliminatePlayer(realIndex)`.
+
+```ts
+// eliminatePlayer logic (from useGameStore)
+eliminatePlayer: (index) => {
+  const newEliminated = [...state.eliminatedIndices, index];
+  const activeCount = state.players.length - newEliminated.length;
+  const remainingImpostors = state.impostorIndices.filter(
+    (i) => !newEliminated.includes(i)
+  ).length;
+  const remainingNonImpostors = activeCount - remainingImpostors;
+
+  if (remainingImpostors === 0 || remainingImpostors >= remainingNonImpostors) {
+    set({ eliminatedIndices: newEliminated, impostorState: 'result' });
+  } else {
+    set({ eliminatedIndices: newEliminated, impostorState: 'word_wait', lastEliminatedIndex: index });
+  }
+};
+```
+
+If no player should be eliminated this round, the host taps **Don't eliminate**, which calls `skipElimination()` and returns to `'word_wait'` without recording an elimination.
+
+| Button | Action |
+|---|---|
+| Player name button | `eliminatePlayer(index)` — checks win condition, navigates to `'result'` or back to `'word_wait'` |
+| **Don't eliminate** | `skipElimination()` → `impostorState = 'word_wait'`, `lastEliminatedIndex = null` |
+
+## Result Phase
+
+`impostorState === 'result'`
+
+The outcome is determined by checking whether all impostor indices appear in `eliminatedIndices`:
+
+| Condition | Outcome message |
+|---|---|
+| All impostors eliminated | **"The players win!"** (green) |
+| Impostors survive (win condition met) | **"The IMPOSTOR wins!"** (red) |
+
+Both outcomes display the full list of impostor names and the `MovieCard` for the movie that was being played (with `showHint={true}`).
+
+The **Back to Lobby** button calls `resetGame()` — which clears `impostorIndices`, `eliminatedIndices`, `impostorState`, and all movie state — and then navigates to `/lobby` via `router.push('/lobby')`.
+
+## Win Condition
+
+<Note>
+  **Impostors win** if, after any elimination, the number of remaining impostors is greater than or equal to the number of remaining non-impostors (`remainingImpostors >= remainingNonImpostors`). This includes the edge case where all non-impostors have been eliminated.
+
+  **Non-impostors (players) win** only if every impostor index appears in `eliminatedIndices` (`remainingImpostors === 0`).
+
+  These two checks happen inside `eliminatePlayer()` on every vote. If neither win condition is met, the game continues with another word round.
+</Note>

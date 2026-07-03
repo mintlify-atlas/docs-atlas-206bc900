@@ -1,0 +1,115 @@
+---
+title: "La Mubi GET /api/movies — TMDB Movie Data Endpoint"
+sidebarTitle: "GET /api/movies"
+description: "The /api/movies route returns up to 20 randomly selected, high-rated TMDB movies enriched with poster, synopsis, genres, and director data."
+---
+
+The `/api/movies` route is La Mubi's internal data pipeline to TMDB. It pulls a randomised selection of high-quality movies — filtered by rating and popularity — and enriches each entry with full genre and crew data before returning the results to the client. The game store calls this endpoint at startup and automatically refills its queue whenever fewer than three movies remain.
+
+## Endpoint
+
+```
+GET /api/movies
+```
+
+## Query Parameters
+
+<ParamField query="count" type="integer" default={8}>
+  Number of movies to return. Clamped server-side to the range **1–20**; values outside that range are silently corrected.
+</ParamField>
+
+## Response
+
+A successful response is a **JSON array** of `MovieResult` objects. Each object contains the following fields:
+
+<ResponseField name="id" type="number" required>
+  TMDB movie ID. Use this to construct a TMDB deep-link (e.g. `https://www.themoviedb.org/movie/{id}`).
+</ResponseField>
+
+<ResponseField name="title" type="string" required>
+  The movie's primary release title.
+</ResponseField>
+
+<ResponseField name="poster_path" type="string" required>
+  The TMDB poster path (e.g. `"/9cqNxx0GxF0bAY4bpuPKOsO88cI.jpg"`). Prepend the TMDB image base URL to get a fully-qualified image URL:
+
+  ```
+  https://image.tmdb.org/t/p/w500{poster_path}
+  ```
+</ResponseField>
+
+<ResponseField name="year" type="string" required>
+  Four-digit release year extracted from the movie's `release_date` field (e.g. `"1994"`).
+</ResponseField>
+
+<ResponseField name="rating" type="string" required>
+  TMDB `vote_average` formatted to exactly one decimal place (e.g. `"8.7"`).
+</ResponseField>
+
+<ResponseField name="overview" type="string" required>
+  The TMDB plot synopsis for the movie.
+</ResponseField>
+
+<ResponseField name="genres" type="string[]" required>
+  Ordered array of genre name strings as returned by TMDB (e.g. `["Drama", "Crime"]`).
+</ResponseField>
+
+<ResponseField name="director" type="string | undefined">
+  Director name sourced from the movie's credits crew. `undefined` when no crew member with `job: "Director"` is present.
+</ResponseField>
+
+## Example Request
+
+```bash
+curl 'http://localhost:3000/api/movies?count=3'
+```
+
+## Example Response
+
+```json
+[
+  {
+    "id": 278,
+    "title": "The Shawshank Redemption",
+    "poster_path": "/9cqNxx0GxF0bAY4bpuPKOsO88cI.jpg",
+    "year": "1994",
+    "rating": "8.7",
+    "overview": "Framed in the 1940s for the double murder of his wife and her lover, upstanding banker Andy Dufresne begins a new life at the Shawshank State Penitentiary.",
+    "genres": ["Drama", "Crime"],
+    "director": "Frank Darabont"
+  }
+]
+```
+
+## Error Responses
+
+| Status | Body | Cause |
+|--------|------|-------|
+| `404` | `[]` | TMDB discover returned zero results for the selected pages. |
+| `500` | `{ "error": "No movies could be loaded" }` | Every individual TMDB detail request (`/movie/{id}`) failed. |
+| `500` | `{ "error": "TMDB error" }` | An unexpected server-side error was thrown during the request. |
+
+## Selection Algorithm
+
+The endpoint introduces randomness at the discovery stage rather than filtering a static list:
+
+1. **Page sampling** — A random number of TMDB discover pages (between **2 and 5**) is chosen, with each page number drawn randomly from the range **1–100**.
+2. **Pooling** — All movie stubs from those pages are combined into a single array.
+3. **Shuffling** — The pool is shuffled using a **Fisher-Yates** shuffle to guarantee uniform distribution.
+4. **Trimming** — The first `count` entries are selected from the shuffled pool.
+5. **Detail enrichment** — A parallel `Promise.allSettled` call fetches `/movie/{id}?append_to_response=credits` from TMDB for each selected movie, providing `genres` and the full `credits.crew` array.
+
+**TMDB discover filters applied on every request:**
+
+| Filter | Value |
+|--------|-------|
+| `sort_by` | `vote_average.desc` |
+| `vote_count.gte` | `1000` |
+| `vote_average.gte` | `7` |
+| `language` | `en-US` |
+
+**Caching:** All TMDB `fetch` calls use Next.js ISR with `{ next: { revalidate: 3600 } }`, meaning responses are cached at the edge for **one hour** before the data is refreshed.
+
+<Note>
+  This is an internal Next.js API route. It is not a public REST API — it runs server-side and requires `TMDB_API_KEY` to be set in the server environment. Calling it from an external host or without the environment variable will result in a `500` error.
+</Note>

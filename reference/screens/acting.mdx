@@ -1,0 +1,66 @@
+---
+title: "Acting Screen: Live Countdown Timer and Round Controls"
+sidebarTitle: "Acting"
+description: "The acting screen shows the countdown timer and controls for the current performer. Guessed ends the round with a point; Surrender ends it without."
+---
+
+The Acting screen is the live stage for a Charades round. It shows the countdown timer front and centre while the performer mimes their movie, and gives the host two round-ending controls: one for a correct guess and one for an early surrender.
+
+<Badge variant="default">GET /acting</Badge>
+
+## Timer Behavior
+
+The `Timer` component renders the current `timer` value from the game store as a large, bold numeral. It counts down by one every second via `decrementTimer()` — driven by a `setTimeout` inside a `useEffect`.
+
+| State | Behaviour |
+|---|---|
+| `timer >= 10` | Numeral rendered in the default `text-text-primary` colour |
+| `timer < 10` | Numeral switches to `text-red-600` as a visual urgency signal |
+| `timer <= 0` | `endRound()` is called automatically, then the router navigates to `/result` via `router.replace('/result')` |
+
+The timer starts from `initial_timer` (set in the Lobby) and is reset to that value at the start of every turn by `nextTeam()`.
+
+## Actions
+
+<AccordionGroup>
+  <Accordion title="Guessed! → /result">
+    Rendered as a large `NavButton` (styled with `py-6 rounded-3xl text-2xl`).
+
+    **Sequence:**
+    1. Calls `correctGuess()` — increments the current team's `score` by `1` in the store.
+    2. Calls `endRound()` — sets `game_state` to `'finished'`.
+    3. Navigates to `/result`.
+
+    No confirmation step. The host should press this immediately when the team calls the correct title.
+  </Accordion>
+  <Accordion title="Surrender (two-step confirm) → /result">
+    The **Surrender** button is a two-step flow controlled by local `surrenderConfirm` state.
+
+    **Step 1 — Surrender label visible:**
+    - The button is styled as a muted uppercase text link.
+    - Pressing it sets `surrenderConfirm = true`, which replaces the button with the confirmation row.
+
+    **Step 2 — Confirmation row visible (`surrenderConfirm === true`):**
+
+    | Button | Colour | Action |
+    |---|---|---|
+    | **Give Up** | `bg-red-600` | Calls `endRound()` → `game_state = 'finished'`, then `router.replace('/result')`. No point awarded. |
+    | **Cancel** | `bg-surface-secondary` | Sets `surrenderConfirm = false`, restoring the original Surrender button. |
+
+    The confirmation row fades in with the `animate-fade-in` class so the transition is not jarring during a live round.
+  </Accordion>
+</AccordionGroup>
+
+## Guard Redirect
+
+On mount, the acting screen checks whether the game is in the correct state:
+
+```ts
+useEffect(() => {
+  if (game_state !== 'acting') {
+    router.replace('/lobby');
+  }
+}, []); // runs once on mount
+```
+
+If `game_state` is anything other than `'acting'` when the component mounts — for example after a page refresh or a direct URL visit — the user is immediately redirected to `/lobby`. This prevents the timer from running against a stale or uninitialized game state.

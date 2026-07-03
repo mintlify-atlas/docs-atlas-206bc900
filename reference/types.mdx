@@ -1,0 +1,192 @@
+---
+title: "TypeScript Types and Interfaces — La Mubi Reference"
+sidebarTitle: "Types"
+description: "All TypeScript types and interfaces used across La Mubi: GameMode, ImpostorState, GameStore, Team, Player, and Movie, with field-level documentation."
+---
+
+La Mubi's type system is defined centrally in `src/types/game.ts` and shared across the game store, API route, and UI components. Understanding these types is the fastest way to trace how a game session flows from lobby configuration through active play to the final result screen.
+
+## Full Source
+
+```typescript
+export type GameMode = 'charades' | 'impostor';
+
+export type ImpostorState = 'revealing' | 'word_wait' | 'debate' | 'voting' | 'result';
+
+export interface GameStore { /* all state + actions */ }
+
+export interface Team {
+  name: string;
+  score: number;
+  players: Player[];
+  current_player_index: number;
+}
+
+export interface Player {
+  name: string;
+}
+
+export interface Movie {
+  id: number;
+  title: string;
+  poster_path: string;
+  year: string;
+  rating: string;
+  overview?: string;
+  genres?: string[];
+  director?: string;
+}
+```
+
+---
+
+## `GameMode`
+
+```typescript
+type GameMode = 'charades' | 'impostor';
+```
+
+Determines which game flow the lobby and game screens follow after the host confirms setup.
+
+| Value | Description |
+|-------|-------------|
+| `'charades'` | Teams take turns acting out movies. Scored by correct guesses within a time limit. |
+| `'impostor'` | All players receive a movie, but one or more impostors get a different film. Players give clues and vote to identify the impostor. |
+
+---
+
+## `ImpostorState`
+
+```typescript
+type ImpostorState = 'revealing' | 'word_wait' | 'debate' | 'voting' | 'result';
+```
+
+A five-phase state machine that drives the Impostor game loop. Phases progress linearly but can repeat until a win condition is met.
+
+<Steps>
+  <Step title="revealing">
+    Role cards are shown to players one at a time. Each player sees whether they are an innocent or an impostor. `revealIndex` advances on each call to `nextReveal()` until all players have been shown their card.
+  </Step>
+  <Step title="word_wait">
+    The word round. Each player in sequence gives a single clue word relating to their assigned movie. Innocents and impostors receive different films, so clue words may subtly diverge.
+  </Step>
+  <Step title="debate">
+    A timed open discussion phase. Players argue over who the impostor might be. The `debate_timer` counts down; the host can end debate early with `stopDebate()`.
+  </Step>
+  <Step title="voting">
+    The host selects a player to eliminate. Calls `eliminatePlayer(index)` or `skipElimination()` to resolve the vote.
+  </Step>
+  <Step title="result">
+    The final outcome is displayed — either the innocents have identified all impostors, or the impostor(s) have outlasted enough opponents to win. The round ends here.
+  </Step>
+</Steps>
+
+---
+
+## `Team`
+
+```typescript
+interface Team {
+  name: string;
+  score: number;
+  players: Player[];
+  current_player_index: number;
+}
+```
+
+Represents a competing team in Charades mode. The store initialises two teams by default (`Mad Max` and `La La Land`).
+
+<ResponseField name="name" type="string" required>
+  Display name for the team, shown on score screens and the acting handoff screen. Editable via `updateTeamName()`.
+</ResponseField>
+
+<ResponseField name="score" type="number" required>
+  Cumulative count of correct guesses for this team in the current session. Incremented by `correctGuess()` and reset by `resetScores()` or `resetGame()`.
+</ResponseField>
+
+<ResponseField name="players" type="Player[]" required>
+  Ordered roster of players on this team. The player at `current_player_index` is the active actor for the current round.
+</ResponseField>
+
+<ResponseField name="current_player_index" type="number" required>
+  Points to the player in `players` whose turn it is to act. Advanced by `nextTeam()` after each round, cycling back to `0` when it reaches the end of the roster.
+</ResponseField>
+
+---
+
+## `Player`
+
+```typescript
+interface Player {
+  name: string;
+}
+```
+
+A minimal player record used in both game modes. In Charades mode, players are nested inside `Team.players`. In Impostor mode, they live in the top-level `players` array on the store.
+
+<ResponseField name="name" type="string" required>
+  The player's display name, shown on role-reveal cards and the voting screen.
+</ResponseField>
+
+---
+
+## `Movie`
+
+```typescript
+interface Movie {
+  id: number;
+  title: string;
+  poster_path: string;
+  year: string;
+  rating: string;
+  overview?: string;
+  genres?: string[];
+  director?: string;
+}
+```
+
+Represents a single movie as consumed by the game. Instances are sourced from `GET /api/movies` and stored in the `movies` queue and `current_movie` on the game store.
+
+<ResponseField name="id" type="number" required>
+  TMDB movie ID. Uniquely identifies the movie and can be used to construct a TMDB or Letterboxd URL.
+</ResponseField>
+
+<ResponseField name="title" type="string" required>
+  The movie's primary title as returned by TMDB.
+</ResponseField>
+
+<ResponseField name="poster_path" type="string" required>
+  The TMDB poster path segment (e.g. `"/9cqNxx0GxF0bAY4bpuPKOsO88cI.jpg"`). Prepend `https://image.tmdb.org/t/p/w500` to form a complete image URL.
+</ResponseField>
+
+<ResponseField name="year" type="string" required>
+  Four-digit release year (e.g. `"1994"`), extracted from TMDB's `release_date` field.
+</ResponseField>
+
+<ResponseField name="rating" type="string" required>
+  TMDB audience rating formatted to one decimal place (e.g. `"8.7"`).
+</ResponseField>
+
+<ResponseField name="overview" type="string">
+  Plot synopsis from TMDB. Optional — present on all movies returned by `/api/movies`, but typed as optional for flexibility when constructing `Movie` objects manually.
+</ResponseField>
+
+<ResponseField name="genres" type="string[]">
+  Array of genre name strings (e.g. `["Drama", "Crime"]`). Populated by the `/api/movies` detail-enrichment step.
+</ResponseField>
+
+<ResponseField name="director" type="string">
+  Director's name sourced from the movie's TMDB credits crew. `undefined` when no director credit is present in the response.
+</ResponseField>
+
+---
+
+## `GameStore`
+
+```typescript
+interface GameStore { /* all state + actions */ }
+```
+
+`GameStore` is the complete interface of `useGameStore` — it unifies every state field and every action method into a single typed object. You will not typically reference `GameStore` directly in component code; instead, destructure what you need from the `useGameStore()` hook.
+
+For the full inventory of state fields and action signatures, see the [Game Store reference](/reference/game-store).

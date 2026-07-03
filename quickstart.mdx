@@ -1,47 +1,99 @@
 ---
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+title: "La Mubi Quickstart: Install and Run the Game Locally"
+sidebarTitle: "Quickstart"
+description: "Install La Mubi, add your TMDB API key, and launch the Next.js dev server. Your game is ready at localhost:3000 in five minutes or less."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
-
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
+By the end of this guide you will have a fully functional La Mubi instance running on your machine. You will clone the repository, wire up a free TMDB API key so the game can fetch real movie data, install dependencies, and boot the Next.js development server — all in under five minutes. Once it is running, you can jump straight into a Charades or Impostor session with your group.
 
 ## Prerequisites
 
-Before you begin, you must have:
+- **Node.js 18 or later** — [nodejs.org](https://nodejs.org)
+- **npm** (bundled with Node.js), **yarn**, or **pnpm**
+- **A free TMDB account** — needed to generate the API key that powers all movie data
+- **A modern browser** — Chrome, Firefox, Safari, or Edge (Chromium-based recommended for best animation performance)
 
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+## Steps
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
+  <Step title="Get a TMDB API key">
+    La Mubi fetches movie posters, synopses, directors, and genres from [The Movie Database (TMDB)](https://www.themoviedb.org/settings/api). Creating an account and generating a key is completely free.
+
+    1. Sign up or log in at [themoviedb.org](https://www.themoviedb.org).
+    2. Navigate to **Settings → API** at [https://www.themoviedb.org/settings/api](https://www.themoviedb.org/settings/api).
+    3. Request a **Developer** API key and fill in the short application form (personal / hobby use is always approved).
+    4. Copy the **API Key (v3 auth)** — you will paste it into your `.env` file in step 4.
+  </Step>
+
+  <Step title="Clone the repository">
+    Clone the La Mubi repository and move into the project directory:
 
     ```bash
-    npm install your-package
+    git clone https://github.com/dlampatricio/lamubi.git && cd lamubi
     ```
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
 
-    ```bash
-    your-cli init
-    ```
+  <Step title="Install dependencies">
+    Install all required packages using your preferred package manager:
+
+    <CodeGroup>
+      ```bash npm
+      npm install
+      ```
+
+      ```bash yarn
+      yarn
+      ```
+
+      ```bash pnpm
+      pnpm install
+      ```
+    </CodeGroup>
   </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
+
+  <Step title="Create the .env file">
+    Create a `.env` file in the project root and add your TMDB API key:
+
+    ```env .env
+    TMDB_API_KEY=your_key_here
+    ```
+
+    Replace `your_key_here` with the API Key (v3 auth) you copied in step 1.
+
+    <Note>
+      Never commit your `.env` file to version control. La Mubi's `.gitignore` already excludes it, so your key stays local.
+    </Note>
+  </Step>
+
+  <Step title="Start the dev server">
+    Launch the Next.js development server:
 
     ```bash
-    your-cli start
+    npm run dev
     ```
+
+    Once the server is ready, open [http://localhost:3000](http://localhost:3000) in your browser. You should see the La Mubi lobby screen.
+  </Step>
+
+  <Step title="Configure and play">
+    From the lobby you can go directly into a game:
+
+    1. **Choose a mode** — select **Charades** for team-based silent acting, or **Impostor** for social-deduction bluffing.
+    2. **Add teams and players** — enter team names and the names of all participants.
+    3. **Set the timer** — pick 30 s, 60 s, or 90 s per round depending on how competitive your group is.
+    4. **Start the game** — hit the start button, pass the device to the first player, and let the chaos begin.
   </Step>
 </Steps>
 
 <Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
-
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
+  For production deployment, add `TMDB_API_KEY` as an environment variable in your hosting provider (e.g. Vercel — go to **Project Settings → Environment Variables**). The build command is `npm run build` and the start command is `npm start`.
 </Tip>
+
+## Available Scripts
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start the Next.js development server with hot reload at `localhost:3000` |
+| `npm run build` | Compile and bundle the application for production |
+| `npm start` | Start the production server (requires a completed build) |
+| `npm run lint` | Run ESLint across the codebase to catch type and style issues |
